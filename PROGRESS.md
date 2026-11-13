@@ -16,7 +16,7 @@ Status labels:
 | 6  | Heston (full-truncation Euler) + semi-analytic ref     | VERIFIED (local + CI)        |
 | 7  | Benchmarks + figures                                   | VERIFIED (local + CI)        |
 | 8  | README, resume bullets, talking points                 | VERIFIED (local + CI)        |
-| 9  | Final audit                                            | VERIFIED (local); CI pending |
+| 9  | Final audit                                            | VERIFIED (local + CI)        |
 
 ## Log
 
@@ -268,6 +268,8 @@ Fixes applied:
 - Local verification: pytest 341 passed; ruff clean; `./build-tsan/tsan_test` (AppleClang 17,
   RelWithDebInfo, -fsanitize=thread) reported no races and identical 1- vs 8-thread results
   for the European (antithetic + CV), Asian (CV), up-and-out, QMC and Heston pricers.
+- CI verification: 7/7 jobs green (including the new ThreadSanitizer job) on the run for
+  commit 90a23b3.
 
 Reviewed, no change needed:
 - Sobol Gray-code index stays below 2^32 (`sobol_next_bit` only advances to points < n_points),
