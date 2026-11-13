@@ -21,6 +21,10 @@ htmlcov/
 .venv/
 venv/
 
+# Raw downloads (the generated header and LICENSE are committed instead)
+third_party/joe-kuo/new-joe-kuo-6.21201
+third_party/joe-kuo/sobol.html
+
 # Editors, tools, OS
 .vscode/
 .idea/
