@@ -103,6 +103,9 @@ python -m pip install --no-build-isolation -e .
 python -m pytest
 ```
 
+The package has no runtime dependencies; the semi-analytic `mcpricer.heston()` reference needs
+scipy (`pip install ".[reference]"` from a checkout, or the `dev` group above).
+
 ## Usage
 
 ```python
@@ -257,7 +260,10 @@ but it has not been profiled.
   Python threads.
 - **Input validation.** Every invalid parameter raises a `ValueError` naming it.
 - **CI.** Ruff; build with warnings as errors and test on Ubuntu and macOS (Python 3.11 and
-  3.13); a separate Linux job built with AddressSanitizer + UndefinedBehaviorSanitizer.
+  3.13); a Linux job running the whole suite with AddressSanitizer + UndefinedBehaviorSanitizer;
+  and a ThreadSanitizer job: a standalone C++ program (`tests/cpp/tsan_test.cpp`, no Python, so
+  everything it runs is instrumented) that runs every multithreaded pricer and checks 1 and 8
+  threads give identical bits.
 
 ## Limitations
 
@@ -268,6 +274,9 @@ but it has not been profiled.
 - Results are bit-identical across thread counts on one machine. All platforms run the same
   algorithms, but `exp`/`log` come from each platform's math library, so bitwise equality
   across operating systems is not guaranteed or tested.
+- Each pricing call starts its own threads; for runs of a few milliseconds that start-up is a
+  noticeable share of the time (no persistent thread pool).
+- QMC accepts any `n_points`, but Sobol's balance properties hold for powers of 2; use those.
 - No dividends; barrier monitoring is discrete only, with no continuity correction.
 - Antithetic variates are implemented for European options only.
 - Benchmarks come from one machine; QMC slopes use 20 seeds per point.
@@ -289,12 +298,14 @@ cpp/include/mcpricer/   headers: RNG, Sobol, Brownian bridge, stats, thread pool
 cpp/src/                pricers: european, path_dependent, qmc, heston
 cpp/bindings/           pybind11 module
 src/mcpricer/           Python package and closed-form references
-tests/                  pytest suite
+tests/                  pytest suite; tests/cpp/ holds the ThreadSanitizer program
 benchmarks/             benchmark scripts, saved results and figures
 scripts/                Sobol direction-number header generator
 third_party/joe-kuo/    licence for the Joe–Kuo direction numbers
 ```
 
-The Sobol direction numbers are from Joe & Kuo
+## Licence
+
+MIT, see [LICENSE](LICENSE). The Sobol direction numbers are from Joe & Kuo
 (https://web.maths.unsw.edu.au/~fkuo/sobol/), used under their BSD-style licence, reproduced in
 [`third_party/joe-kuo/LICENSE`](third_party/joe-kuo/LICENSE) and in the generated header.

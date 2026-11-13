@@ -10,6 +10,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+# mcpricer.heston() (the semi-analytic Heston reference) integrates with scipy.
+reference = ["scipy>=1.13"]
+
 [dependency-groups]
 build = ["scikit-build-core>=1.1", "pybind11>=3.0", "cmake>=3.26", "ninja"]
 test = ["pytest>=8", "numpy>=2", "scipy>=1.13"]
