@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install ruff
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --group lint
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --group test
+      - name: Build and install mcpricer (warnings are errors)
+        run: python -m pip install -v . -Ccmake.define.CMAKE_COMPILE_WARNING_AS_ERROR=ON
+      - name: Run tests
+        run: python -m pytest
+
+  sanitizers:
+    name: Test (ASan + UBSan, Linux)
+    runs-on: ubuntu-latest
+    env:
+      ASAN_OPTIONS: detect_leaks=0
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --group test
+      - name: Build and install mcpricer with sanitizers
+        run: >-
+          python -m pip install -v .
+          -Ccmake.build-type=RelWithDebInfo
+          -Ccmake.define.MCPRICER_SANITIZE=ON
+          -Ccmake.define.CMAKE_COMPILE_WARNING_AS_ERROR=ON
+      - name: Run tests under ASan + UBSan
+        run: |
+          export LD_PRELOAD="$(gcc -print-file-name=libasan.so)"
+          python -c "import mcpricer, sys; sys.exit(not mcpricer.build_info()['sanitizers'])"
+          python -m pytest
