@@ -110,7 +110,7 @@ def main():
         (np_est, np_se), np_time = timed(numpy_fn, args.repeats)
         rows = [("NumPy (vectorized)", np_time, np_est, np_se)]
         for threads, name in ((1, "C++, 1 thread"), (0, "C++, all threads")):
-            r, t = timed(lambda threads=threads: cpp_fn(threads), args.repeats)
+            r, t = timed(lambda fn=cpp_fn, threads=threads: fn(threads), args.repeats)
             rows.append((name, t, r.estimate, r.std_error))
             gap = abs(r.estimate - np_est) / math.hypot(r.std_error, np_se)
             if gap >= 4.0:
