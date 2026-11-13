@@ -12,8 +12,8 @@ Status labels:
 | 2  | Multithreading + deterministic chunked RNG             | VERIFIED (local + CI)        |
 | 3  | Variance reduction (antithetic, control variates)      | VERIFIED (local + CI)        |
 | 4  | Arithmetic Asian (geometric CV) + discrete barrier     | VERIFIED (local + CI)        |
-| 5  | Sobol QMC + Brownian bridge + random digital shift     | VERIFIED (local); CI pending |
-| 6  | Heston (full-truncation Euler) + semi-analytic ref     | TODO                         |
+| 5  | Sobol QMC + Brownian bridge + random digital shift     | VERIFIED (local + CI)        |
+| 6  | Heston (full-truncation Euler) + semi-analytic ref     | IMPLEMENTED                  |
 | 7  | Benchmarks + figures                                   | TODO                         |
 | 8  | README, resume bullets, talking points                 | TODO                         |
 | 9  | Final audit                                            | TODO                         |
@@ -171,3 +171,43 @@ Status labels:
     fit gives −0.491. Each RMSE comes from only 20 errors (about ±16% sampling noise), and the
     points are correlated: for a given seed, the MC paths at N are a prefix of the paths at 2N.
     Not yet checked: rerunning with more trials (`--trials 100`) to tighten the fits.
+- CI verification: 6/6 jobs green on run 43377102633 (commit 8f67810).
+
+### Milestone 6 — Heston
+
+- Full-truncation Euler (Lord, Koekkoek & van Dijk 2010): v may go negative, only
+  v+ = max(v, 0) enters drift and diffusion; log-Euler for S, so the simulated S is an exact
+  martingale given v+. Two correlated normals per step: Z_S = ρ Z_v + √(1 − ρ²) Z_2.
+- Semi-analytic reference `mcpricer.heston`: "little Heston trap" characteristic function
+  (Albrecher et al. 2007), Gil-Pelaez P1/P2 with `scipy.integrate.quad` on [0, ∞); put by
+  parity. Uses `cmath`, so the package keeps no runtime dependencies (scipy is imported
+  only by `heston()`).
+- First test run FAILED: Feller-violated call at 200 steps was 5.1 SE above the reference
+  (+0.0565, SE 0.0111). The benchmark below showed the bias keeps shrinking with the step
+  count, so the reference is right and 200 steps is too coarse for that model. The test now
+  uses 1024 steps there, and a new test checks the bias shrinks over 16 → 64 → 256 steps.
+- Tests: reference → Black–Scholes(√θ) as ξ → 0 with v0 = θ; reference put–call parity and
+  bounds; MC within 4 SE of the reference on fine grids (3 models × call/put); bias shrinks
+  with steps; one Euler step = Black–Scholes(√v0); bit-identical across threads; validation.
+- `python benchmarks/heston_convergence.py --max-log2 10` (1,000,000 paths, seed 42, ATM call
+  S = K = 100, r = 0.03, T = 1; same machine and build as milestone 2).
+  Figure: `benchmarks/figures/heston_bias.png`. Selected rows (the run printed every power of
+  2 from 1 to 1024):
+
+  | steps | bias, Feller holds | bias / SE | bias, Feller violated | bias / SE |
+  |------:|-------------------:|----------:|----------------------:|----------:|
+  |     1 |           +0.18154 |     +12.8 |              +2.69766 |    +190.7 |
+  |     4 |           +0.08780 |      +7.4 |              +3.05276 |    +295.3 |
+  |    16 |           +0.01431 |      +1.2 |              +1.07252 |    +169.7 |
+  |    64 |           −0.00466 |      −0.4 |              +0.22366 |     +43.4 |
+  |   256 |           +0.00270 |      +0.2 |              +0.04426 |      +9.0 |
+  |   512 |           −0.00023 |      −0.0 |              +0.01889 |      +3.8 |
+  |  1024 |           +0.02207 |      +1.9 |              +0.00909 |      +1.8 |
+
+  References: 9.242521 (Feller holds: κ = 2, θ = 0.04, ξ = 0.3, ρ = −0.7, v0 = 0.04) and
+  6.730395 (Feller violated: κ = 0.5, θ = 0.04, ξ = 1, ρ = −0.9, v0 = 0.04).
+  - Feller holds: bias inside ±2 SE from 16 steps on. The +1.9 SE at 1024 steps is consistent
+    with noise (each step count draws different numbers).
+  - Feller violated: bias is positive and falls by a factor 2.1–2.4 per doubling from 64 steps
+    on, i.e. roughly first order in Δt there; it is still 3.8 SE at 512 steps. Euler with
+    full truncation needs fine grids when the variance spends time near zero.
