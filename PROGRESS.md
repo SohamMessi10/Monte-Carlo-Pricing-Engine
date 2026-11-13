@@ -8,7 +8,7 @@ Status labels:
 | #  | Milestone                                              | Status                       |
 |----|--------------------------------------------------------|------------------------------|
 | 0  | Scaffold: build system, CI, tooling                    | VERIFIED (local + CI)        |
-| 1  | GBM European call/put + Black–Scholes reference        | IMPLEMENTED                  |
+| 1  | GBM European call/put + Black–Scholes reference        | VERIFIED (local + CI)        |
 | 2  | Multithreading + deterministic chunked RNG             | TODO                         |
 | 3  | Variance reduction (antithetic, control variates)      | TODO                         |
 | 4  | Arithmetic Asian (geometric CV) + discrete barrier     | TODO                         |
@@ -44,3 +44,14 @@ Status labels:
 - Tests: MC within 4 standard errors of Black–Scholes (4 parameter sets × call/put × 3 fixed
   seeds), put–call parity, bit-identical reruns, AS241 vs `scipy.special.ndtri`,
   invalid-input errors.
+- Local verification (commits 43a779d, 213b0e2): pytest 68 passed; ruff check and
+  ruff format --check clean.
+- Sanity run, ATM call (S=K=100, r=0.05, σ=0.2, T=1), 1,000,000 paths, seed 42:
+  estimate 10.436973, std error 0.014697; Black–Scholes 10.450584 (difference 0.93 SE).
+- CI: the sanitizer job failed on 213b0e2. Two fixes:
+  - Build: GCC's `-Warray-bounds` gave a false positive under ASan inside pybind11 headers;
+    now `-Wno-error=array-bounds` for GCC sanitizer builds only (5280690).
+  - Tests: ASan aborted on the first C++ `throw` (`real___cxa_throw` null) because Python
+    doesn't link libstdc++; the job now preloads libstdc++ after libasan (da1e3e9).
+    Sanitizer job runs pytest with `-v -s` so reports reach the log (61a84f9).
+- CI verification: 6/6 jobs green on commit da1e3e9.
