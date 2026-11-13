@@ -26,12 +26,14 @@ inline unsigned resolve_thread_count(int requested, std::uint64_t n_chunks) noex
 // order. Threads take chunks from a shared counter, so which thread runs which chunk varies
 // from run to run. The result doesn't: each chunk's numbers depend only on its index, and the
 // merge order is fixed. So the output is bit-identical for any thread count.
+// Stats is whatever simulate returns (RunningStats, CovStats, ...); it needs merge().
 template <class ChunkFn>
-RunningStats run_chunks(std::uint64_t n_chunks, unsigned n_threads, const ChunkFn& simulate) {
+auto run_chunks(std::uint64_t n_chunks, unsigned n_threads, const ChunkFn& simulate) {
+    using Stats = std::invoke_result_t<const ChunkFn&, std::uint64_t>;
     // An exception escaping a std::thread calls std::terminate, so simulate must not throw.
-    static_assert(std::is_nothrow_invocable_r_v<RunningStats, const ChunkFn&, std::uint64_t>);
+    static_assert(std::is_nothrow_invocable_v<const ChunkFn&, std::uint64_t>);
 
-    std::vector<RunningStats> partial(n_chunks);
+    std::vector<Stats> partial(n_chunks);
     std::atomic<std::uint64_t> next_chunk{0};
 
     // Relaxed ordering is enough: fetch_add still hands every chunk index to exactly one
@@ -57,7 +59,7 @@ RunningStats run_chunks(std::uint64_t n_chunks, unsigned n_threads, const ChunkF
         helper.join();
     }
 
-    RunningStats total;
+    Stats total;
     for (const auto& stats : partial) {
         total.merge(stats);
     }

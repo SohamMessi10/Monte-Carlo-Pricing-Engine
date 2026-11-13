@@ -48,22 +48,28 @@ PYBIND11_MODULE(_core, m) {
         "price_european",
         [](mcpricer::OptionType option_type, double spot, double strike, double rate,
            double vol, double maturity, std::int64_t n_paths, std::uint64_t seed,
-           int n_threads) {
-            return mcpricer::price_european(
-                {.type = option_type,
-                 .spot = spot,
-                 .strike = strike,
-                 .rate = rate,
-                 .vol = vol,
-                 .maturity = maturity},
-                {.n_paths = n_paths, .seed = seed, .n_threads = n_threads});
+           int n_threads, bool antithetic, bool control_variate) {
+            return mcpricer::price_european({.type = option_type,
+                                             .spot = spot,
+                                             .strike = strike,
+                                             .rate = rate,
+                                             .vol = vol,
+                                             .maturity = maturity},
+                                            {.n_paths = n_paths,
+                                             .seed = seed,
+                                             .n_threads = n_threads,
+                                             .antithetic = antithetic,
+                                             .control_variate = control_variate});
         },
         py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
         py::arg("rate"), py::arg("vol"), py::arg("maturity"), py::arg("n_paths"),
-        py::arg("seed"), py::arg("n_threads") = 0, py::call_guard<py::gil_scoped_release>(),
+        py::arg("seed"), py::arg("n_threads") = 0, py::arg("antithetic") = false,
+        py::arg("control_variate") = false, py::call_guard<py::gil_scoped_release>(),
         "Price a European call or put under GBM by exact Monte Carlo simulation.\n\n"
         "n_threads=0 uses one thread per hardware thread. The result is bit-identical for\n"
-        "every n_threads.");
+        "every n_threads. antithetic pairs each normal draw Z with -Z (n_paths must be even).\n"
+        "control_variate uses S_T, with known mean S_0 exp(rT), as a control. n_paths always\n"
+        "counts simulated terminal prices, so methods compare at equal path counts.");
 
     m.def(
         "_norm_inv",
