@@ -51,6 +51,26 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
+  tsan:
+    name: ThreadSanitizer (C++, Linux)
+    runs-on: ubuntu-latest
+    env:
+      TSAN_OPTIONS: halt_on_error=1 second_deadlock_stack=1
+    steps:
+      - uses: actions/checkout@v7
+      # Recent runner kernels use more ASLR entropy than TSan's shadow-memory layout allows,
+      # which makes TSan abort at start-up ("unexpected memory mapping"). Lower it for this job.
+      - name: Reduce ASLR entropy for ThreadSanitizer
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - name: Build the TSan test (no Python)
+        run: |
+          cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DMCPRICER_BUILD_PYTHON=OFF -DMCPRICER_TSAN_TEST=ON \
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build-tsan --parallel
+      - name: Run under ThreadSanitizer
+        run: ./build-tsan/tsan_test
+
   sanitizers:
     name: Test (ASan + UBSan, Linux)
     runs-on: ubuntu-latest
