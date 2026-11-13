@@ -10,10 +10,11 @@ from ._core import (
     build_info,
     price_asian,
     price_european,
+    price_heston,
     price_qmc,
     price_up_and_out,
 )
-from .reference import black_scholes, geometric_asian
+from .reference import black_scholes, geometric_asian, heston
 
 __version__ = version("mcpricer")
 __all__ = [
@@ -25,8 +26,10 @@ __all__ = [
     "black_scholes",
     "build_info",
     "geometric_asian",
+    "heston",
     "price_asian",
     "price_european",
+    "price_heston",
     "price_qmc",
     "price_up_and_out",
 ]

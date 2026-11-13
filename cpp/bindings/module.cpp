@@ -7,6 +7,7 @@
 
 #include "mcpricer/build_info.hpp"
 #include "mcpricer/european.hpp"
+#include "mcpricer/heston.hpp"
 #include "mcpricer/normal.hpp"
 #include "mcpricer/path_dependent.hpp"
 #include "mcpricer/qmc.hpp"
@@ -177,6 +178,32 @@ PYBIND11_MODULE(_core, m) {
         "Randomized QMC price: Sobol (Joe-Kuo) points with independent random digital shifts.\n\n"
         "Each of n_replications shifts gives an independent unbiased estimate from n_points\n"
         "points; the result is their mean, and std_error comes from their spread.");
+
+    m.def(
+        "price_heston",
+        [](mcpricer::OptionType option_type, double spot, double strike, double rate,
+           double maturity, double v0, double kappa, double theta, double xi, double rho,
+           int n_steps, std::int64_t n_paths, std::uint64_t seed, int n_threads) {
+            return mcpricer::price_heston({.type = option_type,
+                                           .spot = spot,
+                                           .strike = strike,
+                                           .rate = rate,
+                                           .maturity = maturity,
+                                           .v0 = v0,
+                                           .kappa = kappa,
+                                           .theta = theta,
+                                           .xi = xi,
+                                           .rho = rho,
+                                           .n_steps = n_steps},
+                                          {.n_paths = n_paths, .seed = seed, .n_threads = n_threads});
+        },
+        py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
+        py::arg("rate"), py::arg("maturity"), py::arg("v0"), py::arg("kappa"), py::arg("theta"),
+        py::arg("xi"), py::arg("rho"), py::arg("n_steps"), py::arg("n_paths"), py::arg("seed"),
+        py::arg("n_threads") = 0, py::call_guard<py::gil_scoped_release>(),
+        "Price a European call or put under Heston by full-truncation Euler Monte Carlo.\n\n"
+        "The estimate carries discretization bias that shrinks as n_steps grows; std_error\n"
+        "measures only the statistical error.");
 
     m.def("_sobol_points", &mcpricer::sobol_points, py::arg("n"), py::arg("dims"),
           "First n unshifted Sobol points (Gray-code order) in dims dimensions. For tests.");
