@@ -120,7 +120,7 @@ def main():
     fig.tight_layout()
     FIGURE.parent.mkdir(exist_ok=True)
     fig.savefig(FIGURE, dpi=150, facecolor=SURFACE)
-    print(f"wrote {FIGURE}")
+    print(f"wrote {FIGURE.relative_to(FIGURE.parents[2])}")
 
 
 if __name__ == "__main__":
