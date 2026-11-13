@@ -242,4 +242,4 @@ Status labels:
     use the inverse CDF (AS241: a log, a sqrt and rational polynomials per normal) to stay
     bit-identical across platforms; NumPy's array `exp` may also be SIMD-vectorized. Profiling
     the single-thread loop is listed as future work, not claimed as a fix.
-- CI verification: green on the push of commit 1f1e91c.
+- CI verification: 6/6 jobs green on run 43379007510 (commit 1f1e91c).

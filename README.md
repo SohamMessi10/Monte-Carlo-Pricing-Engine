@@ -111,20 +111,47 @@ from mcpricer import Average, OptionType, Payoff
 
 terms = dict(spot=100.0, strike=100.0, rate=0.05, vol=0.2, maturity=1.0)
 
-r = mcpricer.price_european(option_type=OptionType.CALL, **terms, n_paths=1_000_000, seed=42,
-                            antithetic=True, control_variate=True)
+r = mcpricer.price_european(
+    option_type=OptionType.CALL,
+    **terms,
+    n_paths=1_000_000,
+    seed=42,
+    antithetic=True,
+    control_variate=True,
+)
 print(r.estimate, r.std_error, r.n_paths, r.elapsed_seconds)
 print(mcpricer.black_scholes(option_type=OptionType.CALL, **terms))
 
-asian = mcpricer.price_asian(option_type=OptionType.CALL, **terms, n_steps=12,
-                             n_paths=500_000, seed=1, control_variate=True)
-barrier = mcpricer.price_up_and_out(option_type=OptionType.CALL, **terms, barrier=130.0,
-                                    n_steps=252, n_paths=500_000, seed=1)
-qmc = mcpricer.price_qmc(option_type=OptionType.CALL, **terms, n_steps=64, n_points=2**14,
-                         n_replications=16, seed=1, payoff=Payoff.ARITHMETIC_ASIAN)
-heston = mcpricer.price_heston(option_type=OptionType.CALL, spot=100.0, strike=100.0,
-                               rate=0.03, maturity=1.0, v0=0.04, kappa=2.0, theta=0.04,
-                               xi=0.3, rho=-0.7, n_steps=200, n_paths=500_000, seed=1)
+asian = mcpricer.price_asian(
+    option_type=OptionType.CALL, **terms, n_steps=12, n_paths=500_000, seed=1, control_variate=True
+)
+barrier = mcpricer.price_up_and_out(
+    option_type=OptionType.CALL, **terms, barrier=130.0, n_steps=252, n_paths=500_000, seed=1
+)
+qmc = mcpricer.price_qmc(
+    option_type=OptionType.CALL,
+    **terms,
+    n_steps=64,
+    n_points=2**14,
+    n_replications=16,
+    seed=1,
+    payoff=Payoff.ARITHMETIC_ASIAN,
+)
+heston = mcpricer.price_heston(
+    option_type=OptionType.CALL,
+    spot=100.0,
+    strike=100.0,
+    rate=0.03,
+    maturity=1.0,
+    v0=0.04,
+    kappa=2.0,
+    theta=0.04,
+    xi=0.3,
+    rho=-0.7,
+    n_steps=200,
+    n_paths=500_000,
+    seed=1,
+)
 ```
 
 Every pricer takes `n_threads` (0 = one per hardware thread) and returns the estimate, its
