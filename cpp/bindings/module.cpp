@@ -1,5 +1,6 @@
 // Python bindings for the mcpricer C++ core (module mcpricer._core).
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <cstdint>
 #include <stdexcept>
@@ -8,6 +9,7 @@
 #include "mcpricer/european.hpp"
 #include "mcpricer/normal.hpp"
 #include "mcpricer/path_dependent.hpp"
+#include "mcpricer/qmc.hpp"
 #include "mcpricer/result.hpp"
 
 namespace py = pybind11;
@@ -142,6 +144,42 @@ PYBIND11_MODULE(_core, m) {
         py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
         py::arg("rate"), py::arg("vol"), py::arg("maturity"), py::arg("n_steps"),
         "C++ geometric Asian closed form (the control variate's mean). Exposed for tests.");
+
+    py::enum_<mcpricer::Payoff>(m, "Payoff")
+        .value("EUROPEAN", mcpricer::Payoff::European)
+        .value("ARITHMETIC_ASIAN", mcpricer::Payoff::ArithmeticAsian)
+        .value("GEOMETRIC_ASIAN", mcpricer::Payoff::GeometricAsian);
+
+    m.def(
+        "price_qmc",
+        [](mcpricer::OptionType option_type, double spot, double strike, double rate,
+           double vol, double maturity, int n_steps, std::int64_t n_points, int n_replications,
+           std::uint64_t seed, mcpricer::Payoff payoff, bool brownian_bridge, int n_threads) {
+            return mcpricer::price_qmc({.terms = {.type = option_type,
+                                                  .spot = spot,
+                                                  .strike = strike,
+                                                  .rate = rate,
+                                                  .vol = vol,
+                                                  .maturity = maturity},
+                                        .n_steps = n_steps,
+                                        .payoff = payoff},
+                                       {.n_points = n_points,
+                                        .n_replications = n_replications,
+                                        .seed = seed,
+                                        .n_threads = n_threads,
+                                        .brownian_bridge = brownian_bridge});
+        },
+        py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
+        py::arg("rate"), py::arg("vol"), py::arg("maturity"), py::arg("n_steps"),
+        py::arg("n_points"), py::arg("n_replications"), py::arg("seed"),
+        py::arg("payoff") = mcpricer::Payoff::European, py::arg("brownian_bridge") = true,
+        py::arg("n_threads") = 0, py::call_guard<py::gil_scoped_release>(),
+        "Randomized QMC price: Sobol (Joe-Kuo) points with independent random digital shifts.\n\n"
+        "Each of n_replications shifts gives an independent unbiased estimate from n_points\n"
+        "points; the result is their mean, and std_error comes from their spread.");
+
+    m.def("_sobol_points", &mcpricer::sobol_points, py::arg("n"), py::arg("dims"),
+          "First n unshifted Sobol points (Gray-code order) in dims dimensions. For tests.");
 
     m.def(
         "_norm_inv",

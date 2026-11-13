@@ -26,9 +26,10 @@ inline unsigned resolve_thread_count(int requested, std::uint64_t n_chunks) noex
 // order. Threads take chunks from a shared counter, so which thread runs which chunk varies
 // from run to run. The result doesn't: each chunk's numbers depend only on its index, and the
 // merge order is fixed. So the output is bit-identical for any thread count.
-// Stats is whatever simulate returns (RunningStats, CovStats, ...); it needs merge().
+// Calls simulate(chunk) once for every chunk and returns the per-chunk results, indexed by
+// chunk. Stats is whatever simulate returns (RunningStats, CovStats, ...).
 template <class ChunkFn>
-auto run_chunks(std::uint64_t n_chunks, unsigned n_threads, const ChunkFn& simulate) {
+auto collect_chunks(std::uint64_t n_chunks, unsigned n_threads, const ChunkFn& simulate) {
     using Stats = std::invoke_result_t<const ChunkFn&, std::uint64_t>;
     // An exception escaping a std::thread calls std::terminate, so simulate must not throw.
     static_assert(std::is_nothrow_invocable_v<const ChunkFn&, std::uint64_t>);
@@ -58,8 +59,14 @@ auto run_chunks(std::uint64_t n_chunks, unsigned n_threads, const ChunkFn& simul
     for (auto& helper : helpers) {
         helper.join();
     }
+    return partial;
+}
 
-    Stats total;
+// collect_chunks, then merge the results in chunk order. Stats needs merge().
+template <class ChunkFn>
+auto run_chunks(std::uint64_t n_chunks, unsigned n_threads, const ChunkFn& simulate) {
+    const auto partial = collect_chunks(n_chunks, n_threads, simulate);
+    typename std::decay_t<decltype(partial)>::value_type total;
     for (const auto& stats : partial) {
         total.merge(stats);
     }
