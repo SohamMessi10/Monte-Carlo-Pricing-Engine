@@ -32,6 +32,11 @@ if(MCPRICER_SANITIZE)
   target_compile_options(_core PRIVATE ${_sanitizer_flags})
   target_link_options(_core PRIVATE ${_sanitizer_flags})
   target_compile_definitions(_core PRIVATE _GLIBCXX_ASSERTIONS)
+  # GCC's -Warray-bounds gives false positives on ASan-instrumented code (here inside
+  # pybind11's headers). Keep it as a warning, but don't let it fail the -Werror build.
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(_core PRIVATE -Wno-error=array-bounds)
+  endif()
 endif()
 
 install(TARGETS _core LIBRARY DESTINATION mcpricer)
