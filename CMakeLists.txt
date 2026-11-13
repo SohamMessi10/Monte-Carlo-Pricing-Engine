@@ -17,6 +17,7 @@ configure_file(cmake/build_info.hpp.in generated/mcpricer/build_info.hpp @ONLY)
 pybind11_add_module(_core MODULE
   cpp/bindings/module.cpp
   cpp/src/european.cpp
+  cpp/src/path_dependent.cpp
 )
 target_compile_features(_core PRIVATE cxx_std_20)
 target_link_libraries(_core PRIVATE Threads::Threads)

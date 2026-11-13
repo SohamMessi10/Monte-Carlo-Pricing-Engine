@@ -7,6 +7,7 @@
 #include "mcpricer/build_info.hpp"
 #include "mcpricer/european.hpp"
 #include "mcpricer/normal.hpp"
+#include "mcpricer/path_dependent.hpp"
 #include "mcpricer/result.hpp"
 
 namespace py = pybind11;
@@ -70,6 +71,77 @@ PYBIND11_MODULE(_core, m) {
         "every n_threads. antithetic pairs each normal draw Z with -Z (n_paths must be even).\n"
         "control_variate uses S_T, with known mean S_0 exp(rT), as a control. n_paths always\n"
         "counts simulated terminal prices, so methods compare at equal path counts.");
+
+    py::enum_<mcpricer::Average>(m, "Average")
+        .value("ARITHMETIC", mcpricer::Average::Arithmetic)
+        .value("GEOMETRIC", mcpricer::Average::Geometric);
+
+    m.def(
+        "price_asian",
+        [](mcpricer::OptionType option_type, double spot, double strike, double rate,
+           double vol, double maturity, int n_steps, std::int64_t n_paths, std::uint64_t seed,
+           mcpricer::Average average, int n_threads, bool control_variate) {
+            return mcpricer::price_asian(
+                {.terms = {.type = option_type,
+                           .spot = spot,
+                           .strike = strike,
+                           .rate = rate,
+                           .vol = vol,
+                           .maturity = maturity},
+                 .n_steps = n_steps,
+                 .average = average},
+                {.n_paths = n_paths,
+                 .seed = seed,
+                 .n_threads = n_threads,
+                 .control_variate = control_variate});
+        },
+        py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
+        py::arg("rate"), py::arg("vol"), py::arg("maturity"), py::arg("n_steps"),
+        py::arg("n_paths"), py::arg("seed"), py::arg("average") = mcpricer::Average::Arithmetic,
+        py::arg("n_threads") = 0, py::arg("control_variate") = false,
+        py::call_guard<py::gil_scoped_release>(),
+        "Price a discretely monitored Asian call or put under GBM.\n\n"
+        "The average is over S(t_i), t_i = i T / n_steps, i = 1..n_steps. control_variate\n"
+        "(arithmetic average only) uses the geometric Asian, whose price is known exactly.");
+
+    m.def(
+        "price_up_and_out",
+        [](mcpricer::OptionType option_type, double spot, double strike, double rate,
+           double vol, double maturity, double barrier, int n_steps, std::int64_t n_paths,
+           std::uint64_t seed, int n_threads) {
+            return mcpricer::price_up_and_out(
+                {.terms = {.type = option_type,
+                           .spot = spot,
+                           .strike = strike,
+                           .rate = rate,
+                           .vol = vol,
+                           .maturity = maturity},
+                 .barrier = barrier,
+                 .n_steps = n_steps},
+                {.n_paths = n_paths, .seed = seed, .n_threads = n_threads});
+        },
+        py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
+        py::arg("rate"), py::arg("vol"), py::arg("maturity"), py::arg("barrier"),
+        py::arg("n_steps"), py::arg("n_paths"), py::arg("seed"), py::arg("n_threads") = 0,
+        py::call_guard<py::gil_scoped_release>(),
+        "Price a discretely monitored up-and-out call or put under GBM.\n\n"
+        "The option pays nothing if S(t_i) >= barrier at any t_i = i T / n_steps.");
+
+    m.def(
+        "_geometric_asian",
+        [](mcpricer::OptionType option_type, double spot, double strike, double rate,
+           double vol, double maturity, int n_steps) {
+            return mcpricer::geometric_asian_price({.type = option_type,
+                                                    .spot = spot,
+                                                    .strike = strike,
+                                                    .rate = rate,
+                                                    .vol = vol,
+                                                    .maturity = maturity},
+                                                   n_steps);
+        },
+        py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
+        py::arg("rate"), py::arg("vol"), py::arg("maturity"), py::arg("n_steps"),
+        "C++ geometric Asian closed form (the control variate's mean). Exposed for tests.");
 
     m.def(
         "_norm_inv",
