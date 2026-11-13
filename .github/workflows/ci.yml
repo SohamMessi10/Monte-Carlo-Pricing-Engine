@@ -74,6 +74,8 @@ jobs:
           -Ccmake.define.CMAKE_COMPILE_WARNING_AS_ERROR=ON
       - name: Run tests under ASan + UBSan
         run: |
-          export LD_PRELOAD="$(gcc -print-file-name=libasan.so)"
+          # Python itself doesn't link libstdc++. Preload it after libasan so ASan's
+          # __cxa_throw interceptor can find the real function when it starts up.
+          export LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)"
           python -c "import mcpricer, sys; sys.exit(not mcpricer.build_info()['sanitizers'])"
           python -m pytest -v -s
