@@ -9,7 +9,7 @@ Status labels:
 |----|--------------------------------------------------------|------------------------------|
 | 0  | Scaffold: build system, CI, tooling                    | VERIFIED (local + CI)        |
 | 1  | GBM European call/put + Black–Scholes reference        | VERIFIED (local + CI)        |
-| 2  | Multithreading + deterministic chunked RNG             | TODO                         |
+| 2  | Multithreading + deterministic chunked RNG             | VERIFIED (local); CI pending |
 | 3  | Variance reduction (antithetic, control variates)      | TODO                         |
 | 4  | Arithmetic Asian (geometric CV) + discrete barrier     | TODO                         |
 | 5  | Sobol QMC + Brownian bridge + random digital shift     | TODO                         |
@@ -55,3 +55,27 @@ Status labels:
     doesn't link libstdc++; the job now preloads libstdc++ after libasan (da1e3e9).
     Sanitizer job runs pytest with `-v -s` so reports reach the log (61a84f9).
 - CI verification: 6/6 jobs green on commit da1e3e9.
+
+### Milestone 2 — multithreading
+
+- `run_chunks` (cpp/include/mcpricer/parallel.hpp): std::thread pool; threads take chunk
+  indices from an atomic counter, store each chunk's stats in its own slot, and the slots are
+  merged in chunk order after join(). `n_threads=0` means one per hardware thread.
+- GIL released during pricing (`py::call_guard<py::gil_scoped_release>`).
+- Tests: bit-identical estimate and std error for 1, 2, 3, 4, 8 and auto threads; more threads
+  than chunks; concurrent calls from Python threads; invalid thread counts.
+- Local verification: pytest 76 passed; ruff check clean.
+- Thread scaling, `python benchmarks/thread_scaling.py` (20,000,000 paths, ATM call,
+  5 repeats, median of C++ elapsed time). Apple M3 (4 performance + 4 efficiency cores),
+  macOS 15.5, AppleClang 17.0.0.17000013, Release `-O3 -DNDEBUG`, Python 3.13.18:
+
+  | threads | median s | Mpaths/s | speedup |
+  |--------:|---------:|---------:|--------:|
+  |       1 |   0.3935 |     50.8 |    1.00 |
+  |       2 |   0.1997 |    100.1 |    1.97 |
+  |       4 |   0.1063 |    188.1 |    3.70 |
+  |       8 |   0.0700 |    285.9 |    5.63 |
+
+  All runs bit-identical to the 1-thread result. 1→4 threads is near-linear (3.70×); 8 threads
+  give 5.63×, not 8×. Likely explanation (not separately measured): threads 5–8 run on the
+  slower efficiency cores.
