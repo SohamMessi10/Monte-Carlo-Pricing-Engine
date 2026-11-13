@@ -7,7 +7,7 @@ Status labels:
 
 | #  | Milestone                                              | Status                       |
 |----|--------------------------------------------------------|------------------------------|
-| 0  | Scaffold: build system, CI, tooling                    | VERIFIED (local); CI pending |
+| 0  | Scaffold: build system, CI, tooling                    | VERIFIED (local + CI)        |
 | 1  | GBM European call/put + Black–Scholes reference        | TODO                         |
 | 2  | Multithreading + deterministic chunked RNG             | TODO                         |
 | 3  | Variance reduction (antithetic, control variates)      | TODO                         |
@@ -32,4 +32,4 @@ Status labels:
   - Python 3.13.18, CMake 4.4.4, scikit-build-core 1.1.2, pybind11 3.1.0,
     pytest 9.2.0, ruff 0.17.5
   - pytest: 3 passed; ruff check: all checks passed; ruff format --check: no changes
-- CI verification: pending.
+- CI verification: 6/6 jobs green on commit 848fe2a.
