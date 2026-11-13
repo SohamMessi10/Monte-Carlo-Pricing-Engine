@@ -21,6 +21,7 @@ struct EuropeanOption {
 struct McConfig {
     std::int64_t n_paths;  // signed so that negative input gives a clear error, not a wrap
     std::uint64_t seed;
+    int n_threads = 0;  // 0 means one per hardware thread; results don't depend on it
 };
 
 // Exact simulation of S_T. Throws std::invalid_argument on invalid input.

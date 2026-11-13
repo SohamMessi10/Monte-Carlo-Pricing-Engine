@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "mcpricer/normal.hpp"
+#include "mcpricer/parallel.hpp"
 #include "mcpricer/rng.hpp"
 #include "mcpricer/stats.hpp"
 
@@ -28,11 +29,14 @@ void validate(const EuropeanOption& option, const McConfig& config) {
     require(positive_finite(option.maturity), "maturity must be positive and finite");
     require(std::isfinite(option.rate), "rate must be finite");
     require(config.n_paths >= 2, "n_paths must be at least 2 to estimate a standard error");
+    require(config.n_threads >= 0 && config.n_threads <= kMaxThreads,
+            "n_threads must be between 0 and 1024 (0 means one per hardware thread)");
 }
 
 // Undiscounted payoffs of one chunk of paths. Depends only on (seed, chunk, count).
 RunningStats simulate_chunk(const EuropeanOption& option, double drift, double diffusion,
-                            std::uint64_t seed, std::uint64_t chunk, std::uint64_t count) {
+                            std::uint64_t seed, std::uint64_t chunk,
+                            std::uint64_t count) noexcept {
     auto rng = chunk_generator(seed, chunk);
     const bool is_call = option.type == OptionType::Call;
     RunningStats stats;
@@ -59,11 +63,12 @@ PricingResult price_european(const EuropeanOption& option, const McConfig& confi
     const auto n_paths = static_cast<std::uint64_t>(config.n_paths);
     const std::uint64_t n_chunks = (n_paths + kPathsPerChunk - 1) / kPathsPerChunk;
 
-    RunningStats total;
-    for (std::uint64_t chunk = 0; chunk < n_chunks; ++chunk) {
-        const std::uint64_t count = std::min(kPathsPerChunk, n_paths - chunk * kPathsPerChunk);
-        total.merge(simulate_chunk(option, drift, diffusion, config.seed, chunk, count));
-    }
+    const RunningStats total = run_chunks(
+        n_chunks, resolve_thread_count(config.n_threads, n_chunks),
+        [&](std::uint64_t chunk) noexcept {
+            const std::uint64_t count = std::min(kPathsPerChunk, n_paths - chunk * kPathsPerChunk);
+            return simulate_chunk(option, drift, diffusion, config.seed, chunk, count);
+        });
 
     const double discount = std::exp(-option.rate * option.maturity);
     const double std_error = std::sqrt(total.variance() / static_cast<double>(total.count));

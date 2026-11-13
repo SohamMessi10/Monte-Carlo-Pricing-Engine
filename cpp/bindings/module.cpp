@@ -47,7 +47,8 @@ PYBIND11_MODULE(_core, m) {
     m.def(
         "price_european",
         [](mcpricer::OptionType option_type, double spot, double strike, double rate,
-           double vol, double maturity, std::int64_t n_paths, std::uint64_t seed) {
+           double vol, double maturity, std::int64_t n_paths, std::uint64_t seed,
+           int n_threads) {
             return mcpricer::price_european(
                 {.type = option_type,
                  .spot = spot,
@@ -55,12 +56,14 @@ PYBIND11_MODULE(_core, m) {
                  .rate = rate,
                  .vol = vol,
                  .maturity = maturity},
-                {.n_paths = n_paths, .seed = seed});
+                {.n_paths = n_paths, .seed = seed, .n_threads = n_threads});
         },
         py::kw_only(), py::arg("option_type"), py::arg("spot"), py::arg("strike"),
         py::arg("rate"), py::arg("vol"), py::arg("maturity"), py::arg("n_paths"),
-        py::arg("seed"), py::call_guard<py::gil_scoped_release>(),
-        "Price a European call or put under GBM by exact Monte Carlo simulation.");
+        py::arg("seed"), py::arg("n_threads") = 0, py::call_guard<py::gil_scoped_release>(),
+        "Price a European call or put under GBM by exact Monte Carlo simulation.\n\n"
+        "n_threads=0 uses one thread per hardware thread. The result is bit-identical for\n"
+        "every n_threads.");
 
     m.def(
         "_norm_inv",

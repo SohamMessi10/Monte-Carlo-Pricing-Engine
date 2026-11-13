@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
+find_package(Threads REQUIRED)
 
 # Record how the extension was built; exposed to Python as mcpricer.build_info().
 string(TOUPPER "${CMAKE_BUILD_TYPE}" _build_type_upper)
@@ -18,6 +19,7 @@ pybind11_add_module(_core MODULE
   cpp/src/european.cpp
 )
 target_compile_features(_core PRIVATE cxx_std_20)
+target_link_libraries(_core PRIVATE Threads::Threads)
 target_include_directories(_core PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/cpp/include"
   "${CMAKE_CURRENT_BINARY_DIR}/generated"
