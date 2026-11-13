@@ -34,6 +34,7 @@ addopts = ["-ra", "--strict-markers", "--strict-config"]
 
 [tool.ruff]
 line-length = 100
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "NPY", "PT"]

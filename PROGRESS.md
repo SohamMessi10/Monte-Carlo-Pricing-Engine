@@ -8,7 +8,7 @@ Status labels:
 | #  | Milestone                                              | Status                       |
 |----|--------------------------------------------------------|------------------------------|
 | 0  | Scaffold: build system, CI, tooling                    | VERIFIED (local + CI)        |
-| 1  | GBM European call/put + Black–Scholes reference        | TODO                         |
+| 1  | GBM European call/put + Black–Scholes reference        | IMPLEMENTED                  |
 | 2  | Multithreading + deterministic chunked RNG             | TODO                         |
 | 3  | Variance reduction (antithetic, control variates)      | TODO                         |
 | 4  | Arithmetic Asian (geometric CV) + discrete barrier     | TODO                         |
@@ -33,3 +33,14 @@ Status labels:
     pytest 9.2.0, ruff 0.17.5
   - pytest: 3 passed; ruff check: all checks passed; ruff format --check: no changes
 - CI verification: 6/6 jobs green on commit 848fe2a.
+
+### Milestone 1 — European options under GBM
+
+- Exact simulation: S_T = S_0 exp((r − σ²/2)T + σ√T Z).
+- RNG: paths split into chunks of 16384; each chunk gets its own xoshiro256** seeded from
+  SplitMix64(seed, chunk index). Chunks are merged in index order (Welford + Chan merge).
+- Normals: our own inverse CDF (Wichura AS241), so libc++ and libstdc++ give identical bits.
+- Python reference: closed-form Black–Scholes in `mcpricer.reference`.
+- Tests: MC within 4 standard errors of Black–Scholes (4 parameter sets × call/put × 3 fixed
+  seeds), put–call parity, bit-identical reruns, AS241 vs `scipy.special.ndtri`,
+  invalid-input errors.
