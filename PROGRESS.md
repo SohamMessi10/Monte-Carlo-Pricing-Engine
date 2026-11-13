@@ -9,8 +9,8 @@ Status labels:
 |----|--------------------------------------------------------|------------------------------|
 | 0  | Scaffold: build system, CI, tooling                    | VERIFIED (local + CI)        |
 | 1  | GBM European call/put + Black–Scholes reference        | VERIFIED (local + CI)        |
-| 2  | Multithreading + deterministic chunked RNG             | VERIFIED (local); CI pending |
-| 3  | Variance reduction (antithetic, control variates)      | TODO                         |
+| 2  | Multithreading + deterministic chunked RNG             | VERIFIED (local + CI)        |
+| 3  | Variance reduction (antithetic, control variates)      | VERIFIED (local); CI pending |
 | 4  | Arithmetic Asian (geometric CV) + discrete barrier     | TODO                         |
 | 5  | Sobol QMC + Brownian bridge + random digital shift     | TODO                         |
 | 6  | Heston (full-truncation Euler) + semi-analytic ref     | TODO                         |
@@ -79,3 +79,39 @@ Status labels:
   All runs bit-identical to the 1-thread result. 1→4 threads is near-linear (3.70×); 8 threads
   give 5.63×, not 8×. Likely explanation (not separately measured): threads 5–8 run on the
   slower efficiency cores.
+- CI verification: 6/6 jobs green on commit e299036.
+
+### Milestone 3 — variance reduction
+
+- Antithetic variates: each Z also gives a path from −Z; one sample is the pair average, and the
+  standard error comes from the i.i.d. pair averages. `n_paths` counts terminal prices in every
+  method, so comparisons are at equal path counts.
+- Control variate: X = S_T with known mean S_0 e^{rT}; estimator Ȳ − b(X̄ − S_0 e^{rT}) with
+  b = Cov(X, Y) / Var(X) estimated from the same paths; residual variance Var(Y)(1 − ρ²).
+- `CovStats`: mergeable Welford accumulator for (x, y); y updates match `RunningStats`, so plain
+  MC is bit-unchanged (1M paths, seed 42: estimate 10.436972760651598, std error
+  0.014696893199983886, same as milestone 1).
+- Tests: every method within 4 SE of Black–Scholes (4 cases × call/put × 3 seeds × 3 methods);
+  lower SE than plain at equal paths; control variate exact for a linear payoff (K = 1e-6);
+  bit-identical across threads; input validation.
+- Local verification: pytest 163 passed; ruff check and ruff format --check clean.
+- `python benchmarks/variance_reduction.py` (1,000,000 paths, seed 42, all 8 threads, median of
+  5 timed runs after a warm-up; same machine and build as milestone 2).
+  VRF = (plain SE / method SE)²; efficiency gain = VRF × plain time / method time.
+
+  | option            | antithetic VRF | control VRF | both VRF | both efficiency gain |
+  |-------------------|---------------:|------------:|---------:|---------------------:|
+  | call K=80 (ITM)   |           8.73 |       64.00 |   513.51 |               814.96 |
+  | call K=100 (ATM)  |           2.00 |        6.87 |    28.79 |                45.43 |
+  | call K=130 (OTM)  |           1.08 |        1.68 |    13.30 |                21.06 |
+  | put K=100 (ATM)   |           1.71 |        2.38 |     9.98 |                15.84 |
+
+  Observations from these numbers:
+  - Control-variate VRF falls as the option moves out of the money (64.00 → 6.87 → 1.68):
+    the payoff is less linear in S_T, so ρ² is smaller.
+  - The ATM call and ATM put have the same control-variate std error (0.00561) and the same
+    combined std error (0.00274). Call − put = S_T − K is linear in the control, so the
+    regression removes exactly that difference and leaves identical residuals (put–call parity).
+  - Antithetic runs take ~2.2 ms vs ~3.6 ms for plain, so its efficiency gain exceeds its VRF.
+    Likely cause (not profiled): it makes half as many RNG + inverse-CDF calls per path. At 1M paths each run is only a few ms,
+    so thread start-up is a noticeable share of these timings.
