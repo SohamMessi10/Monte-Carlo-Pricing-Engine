@@ -13,9 +13,15 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" _build_type_upper)
 string(STRIP "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_build_type_upper}}" MCPRICER_CXX_FLAGS)
 configure_file(cmake/build_info.hpp.in generated/mcpricer/build_info.hpp @ONLY)
 
-pybind11_add_module(_core MODULE cpp/bindings/module.cpp)
+pybind11_add_module(_core MODULE
+  cpp/bindings/module.cpp
+  cpp/src/european.cpp
+)
 target_compile_features(_core PRIVATE cxx_std_20)
-target_include_directories(_core PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+target_include_directories(_core PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/cpp/include"
+  "${CMAKE_CURRENT_BINARY_DIR}/generated"
+)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(_core PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
