@@ -105,6 +105,7 @@ def main():
         ax.set_title(title, color=INK, fontsize=11, loc="left")
         ax.set_xlabel("paths per estimate, N", color=INK_2)
         ax.set_facecolor(SURFACE)
+        ax.margins(x=0.12)  # room for the end-of-line slope labels inside the frame
         ax.grid(True, which="major", color="#e4e3df", linewidth=0.8)
         ax.tick_params(colors=INK_2)
         for spine in ax.spines.values():

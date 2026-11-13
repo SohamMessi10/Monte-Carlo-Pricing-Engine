@@ -28,9 +28,27 @@ def _cpu_name():
     return platform.processor() or None
 
 
+def _git_commit():
+    """Short hash of HEAD, with "+dirty" if tracked files have uncommitted changes."""
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return head + ("+dirty" if dirty else "")
+
+
 def environment():
     info = mcpricer.build_info()
     env = {
+        "git_commit": _git_commit(),
         "cpu": _cpu_name(),
         "logical_cpus": os.cpu_count(),
         "os": platform.platform(),

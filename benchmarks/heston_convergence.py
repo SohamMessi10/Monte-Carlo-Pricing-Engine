@@ -90,6 +90,7 @@ def main():
     # Linear within ±0.02 (where the fine-grid bias and the ±2 SE bars live), log beyond it,
     # so the coarse-grid bias of several units doesn't flatten everything else.
     ax.set_yscale("symlog", linthresh=0.02)
+    ax.margins(y=0.08)  # keep the largest coarse-grid point off the frame
     ax.set_xlabel("Euler time steps per year", color=INK_2)
     ax.set_ylabel("bias = MC − semi-analytic price", color=INK_2)
     ax.set_title(
