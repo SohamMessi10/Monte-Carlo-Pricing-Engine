@@ -15,8 +15,8 @@ Status labels:
 | 5  | Sobol QMC + Brownian bridge + random digital shift     | VERIFIED (local + CI)        |
 | 6  | Heston (full-truncation Euler) + semi-analytic ref     | VERIFIED (local + CI)        |
 | 7  | Benchmarks + figures                                   | VERIFIED (local + CI)        |
-| 8  | README, resume bullets, talking points                 | IMPLEMENTED                  |
-| 9  | Final audit                                            | TODO                         |
+| 8  | README, resume bullets, talking points                 | VERIFIED (local + CI)        |
+| 9  | Final audit                                            | VERIFIED (local); CI pending |
 
 ## Log
 
@@ -243,3 +243,36 @@ Status labels:
     bit-identical across platforms; NumPy's array `exp` may also be SIMD-vectorized. Profiling
     the single-thread loop is listed as future work, not claimed as a fix.
 - CI verification: 6/6 jobs green on run 43379007510 (commit 1f1e91c).
+
+### Milestone 8 — README
+
+- README: maths, Mermaid architecture, install/usage, measured results with figures, testing
+  strategy, limitations, future work. `tests/test_readme.py` executes the usage example.
+- The first README commit (60d90f3) failed CI lint: ruff also formats Python blocks inside
+  Markdown. Fixed in 77be5f6; CI green on run 43379566582.
+
+### Milestone 9 — final audit
+
+Fixes applied:
+- Licence: no LICENSE meant "all rights reserved". Added MIT (`LICENSE`), keeping the Joe–Kuo
+  BSD-style notice for the direction numbers.
+- Data races: ASan/UBSan do not detect them, and under Python TSan would not see the
+  uninstrumented interpreter. Added `tests/cpp/tsan_test.cpp` (all multithreaded pricers, 1 vs
+  8 threads, bit-identical) and a ThreadSanitizer CI job. CMake gained `MCPRICER_BUILD_PYTHON`
+  (default ON) and `MCPRICER_TSAN_TEST` (default OFF); the extension build is unchanged.
+- scipy: `mcpricer.heston()` needs it but the package declares no dependencies. Added the
+  optional extra `reference = ["scipy>=1.13"]` and a README note.
+- README limitations: threads start per call (no persistent pool); QMC wants power-of-2 point
+  counts.
+- `.gitignore`: `build-*/` for out-of-tree builds such as `build-tsan/`.
+- Local verification: pytest 341 passed; ruff clean; `./build-tsan/tsan_test` (AppleClang 17,
+  RelWithDebInfo, -fsanitize=thread) reported no races and identical 1- vs 8-thread results
+  for the European (antithetic + CV), Asian (CV), up-and-out, QMC and Heston pricers.
+
+Reviewed, no change needed:
+- Sobol Gray-code index stays below 2^32 (`sobol_next_bit` only advances to points < n_points),
+  so the direction-number index never exceeds 31.
+- Invalid input in every binding raises `ValueError`; oversize integers raise `TypeError` in
+  pybind11's conversion; allocation failure surfaces as `MemoryError`.
+- Antithetic and control-variate standard errors use i.i.d. samples (pairs / regression
+  residuals with n − 1).
