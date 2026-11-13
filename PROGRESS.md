@@ -14,8 +14,8 @@ Status labels:
 | 4  | Arithmetic Asian (geometric CV) + discrete barrier     | VERIFIED (local + CI)        |
 | 5  | Sobol QMC + Brownian bridge + random digital shift     | VERIFIED (local + CI)        |
 | 6  | Heston (full-truncation Euler) + semi-analytic ref     | VERIFIED (local + CI)        |
-| 7  | Benchmarks + figures                                   | VERIFIED (local)             |
-| 8  | README, resume bullets, talking points                 | TODO                         |
+| 7  | Benchmarks + figures                                   | VERIFIED (local + CI)        |
+| 8  | README, resume bullets, talking points                 | IMPLEMENTED                  |
 | 9  | Final audit                                            | TODO                         |
 
 ## Log
@@ -242,3 +242,4 @@ Status labels:
     use the inverse CDF (AS241: a log, a sqrt and rational polynomials per normal) to stay
     bit-identical across platforms; NumPy's array `exp` may also be SIMD-vectorized. Profiling
     the single-thread loop is listed as future work, not claimed as a fix.
+- CI verification: green on the push of commit 1f1e91c.
