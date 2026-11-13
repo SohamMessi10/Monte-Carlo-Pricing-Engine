@@ -76,4 +76,4 @@ jobs:
         run: |
           export LD_PRELOAD="$(gcc -print-file-name=libasan.so)"
           python -c "import mcpricer, sys; sys.exit(not mcpricer.build_info()['sanitizers'])"
-          python -m pytest
+          python -m pytest -v -s
