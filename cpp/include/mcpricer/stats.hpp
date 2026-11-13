@@ -85,6 +85,23 @@ struct CovStats {
         c_xy += other.c_xy + dx * dy * (n_a * n_b / n);
         count += other.count;
     }
+
+    struct Estimate {
+        double mean;      // estimate of E[y]
+        double variance;  // sample variance of one adjusted sample y_i - b (x_i - E[x])
+    };
+
+    // Control-variate estimate of E[y], given the exact E[x]: mean_y - b (mean_x - E[x]) with
+    // b = Cov(x, y) / Var(x), the variance-minimizing coefficient, estimated from the same
+    // sample (adds only O(1/n) bias; Glasserman, Monte Carlo Methods, section 4.1).
+    // The adjusted sample variance (m2_y - 2b c_xy + b^2 m2_x) / (n - 1) simplifies to
+    // (m2_y - b c_xy) / (n - 1) for that b. Needs count >= 2.
+    Estimate control_variate(double exact_mean_x) const noexcept {
+        const double b = m2_x > 0.0 ? c_xy / m2_x : 0.0;
+        const double residual = m2_y - b * c_xy;
+        return {mean_y - b * (mean_x - exact_mean_x),
+                (residual > 0.0 ? residual : 0.0) / static_cast<double>(count - 1)};
+    }
 };
 
 }  // namespace mcpricer

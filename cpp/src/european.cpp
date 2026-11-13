@@ -3,25 +3,17 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <stdexcept>
 #include <type_traits>
 
 #include "mcpricer/normal.hpp"
 #include "mcpricer/parallel.hpp"
 #include "mcpricer/rng.hpp"
 #include "mcpricer/stats.hpp"
+#include "mcpricer/validate.hpp"
 
 namespace mcpricer {
 
 namespace {
-
-void require(bool ok, const char* message) {
-    if (!ok) {
-        throw std::invalid_argument(message);
-    }
-}
-
-bool positive_finite(double x) { return x > 0.0 && std::isfinite(x); }
 
 // With antithetic variates one sample is a pair of paths (Z, -Z), so there are half as many.
 std::uint64_t sample_count(const McConfig& config) {
@@ -30,14 +22,8 @@ std::uint64_t sample_count(const McConfig& config) {
 }
 
 void validate(const EuropeanOption& option, const McConfig& config) {
-    require(positive_finite(option.spot), "spot must be positive and finite");
-    require(positive_finite(option.strike), "strike must be positive and finite");
-    require(positive_finite(option.vol), "vol must be positive and finite");
-    require(positive_finite(option.maturity), "maturity must be positive and finite");
-    require(std::isfinite(option.rate), "rate must be finite");
-    require(config.n_paths >= 2, "n_paths must be at least 2 to estimate a standard error");
-    require(config.n_threads >= 0 && config.n_threads <= kMaxThreads,
-            "n_threads must be between 0 and 1024 (0 means one per hardware thread)");
+    validate_terms(option);
+    validate_paths_and_threads(config);
     if (config.antithetic) {
         require(config.n_paths % 2 == 0 && config.n_paths >= 4,
                 "with antithetic=True, n_paths must be even and at least 4 (2 antithetic pairs)");
@@ -115,14 +101,10 @@ PricingResult price_european(const EuropeanOption& option, const McConfig& confi
             return simulate_chunk<CovStats>(gbm, config.antithetic, config.seed, chunk,
                                             chunk_size(chunk));
         });
-        // Y(b) = Y - b (X - E[X]) with X = S_T and E[X] = S_0 e^{rT}. b = Cov(X, Y) / Var(X)
-        // minimizes Var(Y(b)); estimating b from the same sample adds only O(1/n) bias.
-        const double expected_s_t = option.spot * std::exp(option.rate * option.maturity);
-        const double b = s.m2_x > 0.0 ? s.c_xy / s.m2_x : 0.0;
-        mean = s.mean_y - b * (s.mean_x - expected_s_t);
-        // Sample variance of Y_i(b) is (m2_y - 2b c_xy + b^2 m2_x) / (n - 1), and with
-        // b = c_xy / m2_x that simplifies to (m2_y - b c_xy) / (n - 1).
-        variance = std::max(s.m2_y - b * s.c_xy, 0.0) / static_cast<double>(s.count - 1);
+        // Control X = S_T, with E[X] = S_0 e^{rT} under the risk-neutral measure.
+        const auto cv = s.control_variate(option.spot * std::exp(option.rate * option.maturity));
+        mean = cv.mean;
+        variance = cv.variance;
     } else {
         const RunningStats s = run_chunks(n_chunks, n_threads, [&](std::uint64_t chunk) noexcept {
             return simulate_chunk<RunningStats>(gbm, config.antithetic, config.seed, chunk,
