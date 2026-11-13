@@ -1,0 +1,39 @@
+[build-system]
+requires = ["scikit-build-core>=1.1", "pybind11>=3.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "mcpricer"
+version = "0.1.0"
+description = "Monte Carlo option-pricing engine: C++20 core with Python bindings"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+build = ["scikit-build-core>=1.1", "pybind11>=3.0", "cmake>=3.26", "ninja"]
+test = ["pytest>=8", "numpy>=2", "scipy>=1.13"]
+lint = ["ruff"]
+dev = [
+    { include-group = "build" },
+    { include-group = "test" },
+    { include-group = "lint" },
+    "matplotlib",
+]
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.version = "CMakeLists.txt"
+build-dir = "build/{wheel_tag}"
+wheel.packages = ["src/mcpricer"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "NPY", "PT"]

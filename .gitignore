@@ -1,0 +1,29 @@
+# Build outputs
+build/
+dist/
+_skbuild/
+*.egg-info/
+*.so
+*.dylib
+*.pyd
+*.o
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
+# Editors, tools, OS
+.vscode/
+.idea/
+.cache/
+compile_commands.json
+.DS_Store
