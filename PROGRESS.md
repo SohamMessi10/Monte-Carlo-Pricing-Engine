@@ -11,8 +11,8 @@ Status labels:
 | 1  | GBM European call/put + Black–Scholes reference        | VERIFIED (local + CI)        |
 | 2  | Multithreading + deterministic chunked RNG             | VERIFIED (local + CI)        |
 | 3  | Variance reduction (antithetic, control variates)      | VERIFIED (local + CI)        |
-| 4  | Arithmetic Asian (geometric CV) + discrete barrier     | VERIFIED (local); CI pending |
-| 5  | Sobol QMC + Brownian bridge + random digital shift     | TODO                         |
+| 4  | Arithmetic Asian (geometric CV) + discrete barrier     | VERIFIED (local + CI)        |
+| 5  | Sobol QMC + Brownian bridge + random digital shift     | VERIFIED (local); CI pending |
 | 6  | Heston (full-truncation Euler) + semi-analytic ref     | TODO                         |
 | 7  | Benchmarks + figures                                   | TODO                         |
 | 8  | README, resume bullets, talking points                 | TODO                         |
@@ -134,3 +134,40 @@ Status labels:
   Black–Scholes at H = 1e12; single-date barrier within 4 SE of its closed form
   C(K) − C(H) − (H − K) e^{−rT} N(d2(H)); bit-identical across threads; input validation.
 - Local verification: pytest 265 passed; ruff check and ruff format --check clean.
+- CI verification: 6/6 jobs green on run 43375390806 (commit "Record milestone 3 CI and
+  milestone 4 local verification").
+
+### Milestone 5 — randomized quasi-Monte Carlo
+
+- Sobol sequence, Gray-code order, 32-bit, first 1024 dimensions of Joe–Kuo
+  new-joe-kuo-6.21201. `scripts/gen_sobol_header.py` turns the downloaded file into
+  `cpp/include/mcpricer/sobol_directions.hpp` (checks the format; embeds
+  `third_party/joe-kuo/LICENSE`). The raw download is git-ignored.
+- Brownian bridge: W(T) first, then midpoints breadth first, so the leading Sobol
+  coordinates set the large-scale path shape. `brownian_bridge=False` builds W step by step.
+- Random digital shift per replication (XOR with a random 32-bit integer seeded from
+  (seed, replication)); estimate = mean of replications, std error = their sd / √R.
+- Tests: first 10 points equal Joe–Kuo's published sobol.cc output; first 512 points of all
+  1024 dimensions stratified into 512 cells; European within 4 SE of Black–Scholes; geometric
+  Asian within 4 SE of Kemna–Vorst at 1/7/16/64 steps with and without bridge; arithmetic
+  Asian agrees with MC; QMC SE < half the MC SE at equal paths; bit-identical across threads;
+  input validation.
+- Local verification: pytest 301 passed; ruff check and ruff format --check clean.
+- `python benchmarks/qmc_convergence.py` (same machine and build as milestone 2; ATM call,
+  S = K = 100, r = 0.05, σ = 0.2, T = 1; 20 seeds per point; N = 2^9 … 2^18 paths per
+  estimate, QMC = 2 shifts × N/2 points). Figure: `benchmarks/figures/qmc_convergence.png`.
+
+  | product                       | method         | fitted slope | RMSE at N = 262,144 |
+  |-------------------------------|----------------|-------------:|--------------------:|
+  | European call (1 dim)         | MC             |       −0.429 |           3.581e-02 |
+  | European call (1 dim)         | QMC            |       −0.900 |           3.353e-04 |
+  | Geometric Asian call (64 dim) | MC             |       −0.491 |           1.335e-02 |
+  | Geometric Asian call (64 dim) | QMC + bridge   |       −0.803 |           2.757e-04 |
+  | Geometric Asian call (64 dim) | QMC, no bridge |       −0.618 |           1.766e-03 |
+
+  - At N = 262,144, QMC's RMSE is 107× lower than MC for the European call and 48× lower for
+    the 64-step Asian; the bridge makes QMC 6.4× more accurate than step-by-step construction.
+  - MC's European slope (−0.429) is shallower than the theoretical −0.5; the 64-dimension MC
+    fit gives −0.491. Each RMSE comes from only 20 errors (about ±16% sampling noise), and the
+    points are correlated: for a given seed, the MC paths at N are a prefix of the paths at 2N.
+    Not yet checked: rerunning with more trials (`--trials 100`) to tighten the fits.
