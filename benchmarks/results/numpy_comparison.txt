@@ -1,0 +1,23 @@
+$ python benchmarks/numpy_comparison.py
+
+        git_commit: 635a169+dirty
+               cpu: Apple M3
+      logical_cpus: 8
+                os: macOS-15.5-arm64-arm-64bit-Mach-O
+            python: 3.13.18
+          compiler: AppleClang 17.0.0.17000013
+        build_type: Release
+         cxx_flags: -O3 -DNDEBUG
+ performance_cores: 4
+  efficiency_cores: 4
+             numpy: 2.5.4
+           repeats: 5 (median wall-clock seconds after a warm-up)
+
+| product | implementation | median s | Mpaths/s | speedup vs NumPy | estimate ± SE |
+|---|---|---:|---:|---:|---|
+| European call, 10,000,000 paths | NumPy (vectorized) | 0.117 | 85.7 | 1.00 | 10.4482 ± 0.0047 |
+| European call, 10,000,000 paths | C++, 1 thread | 0.198 | 50.6 | 0.59 | 10.4487 ± 0.0047 |
+| European call, 10,000,000 paths | C++, all threads | 0.034 | 292.8 | 3.42 | 10.4487 ± 0.0047 |
+| Arithmetic Asian call, 64 steps, 1,000,000 paths | NumPy (vectorized) | 0.650 | 1.5 | 1.00 | 5.8471 ± 0.0081 |
+| Arithmetic Asian call, 64 steps, 1,000,000 paths | C++, 1 thread | 0.643 | 1.6 | 1.01 | 5.8273 ± 0.0081 |
+| Arithmetic Asian call, 64 steps, 1,000,000 paths | C++, all threads | 0.128 | 7.8 | 5.09 | 5.8273 ± 0.0081 |

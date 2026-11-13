@@ -1,0 +1,27 @@
+$ python benchmarks/thread_scaling.py
+
+        git_commit: 635a169+dirty
+               cpu: Apple M3
+      logical_cpus: 8
+                os: macOS-15.5-arm64-arm-64bit-Mach-O
+            python: 3.13.18
+          compiler: AppleClang 17.0.0.17000013
+        build_type: Release
+         cxx_flags: -O3 -DNDEBUG
+ performance_cores: 4
+  efficiency_cores: 4
+             paths: 20,000,000
+           repeats: 5 (timings are the C++ elapsed_seconds)
+
+| threads | median s | min s | max s | median Mpaths/s | speedup vs 1 | bit-identical |
+|--------:|---------:|------:|------:|----------------:|-------------:|:-------------:|
+|       1 |   0.3959 | 0.395 | 0.397 |            50.5 |         1.00 |      yes      |
+|       2 |   0.2013 | 0.200 | 0.202 |            99.4 |         1.97 |      yes      |
+|       3 |   0.1374 | 0.137 | 0.138 |           145.6 |         2.88 |      yes      |
+|       4 |   0.1033 | 0.103 | 0.107 |           193.7 |         3.83 |      yes      |
+|       5 |   0.0910 | 0.091 | 0.092 |           219.8 |         4.35 |      yes      |
+|       6 |   0.0826 | 0.082 | 0.083 |           242.0 |         4.79 |      yes      |
+|       7 |   0.0766 | 0.076 | 0.078 |           261.3 |         5.17 |      yes      |
+|       8 |   0.0711 | 0.069 | 0.073 |           281.3 |         5.57 |      yes      |
+
+wrote benchmarks/figures/thread_scaling.png

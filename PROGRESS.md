@@ -13,8 +13,8 @@ Status labels:
 | 3  | Variance reduction (antithetic, control variates)      | VERIFIED (local + CI)        |
 | 4  | Arithmetic Asian (geometric CV) + discrete barrier     | VERIFIED (local + CI)        |
 | 5  | Sobol QMC + Brownian bridge + random digital shift     | VERIFIED (local + CI)        |
-| 6  | Heston (full-truncation Euler) + semi-analytic ref     | IMPLEMENTED                  |
-| 7  | Benchmarks + figures                                   | TODO                         |
+| 6  | Heston (full-truncation Euler) + semi-analytic ref     | VERIFIED (local + CI)        |
+| 7  | Benchmarks + figures                                   | VERIFIED (local)             |
 | 8  | README, resume bullets, talking points                 | TODO                         |
 | 9  | Final audit                                            | TODO                         |
 
@@ -211,3 +211,34 @@ Status labels:
   - Feller violated: bias is positive and falls by a factor 2.1–2.4 per doubling from 64 steps
     on, i.e. roughly first order in Δt there; it is still 3.8 SE at 512 steps. Euler with
     full truncation needs fine grids when the variance spends time near zero.
+- Local verification: pytest 340 passed; ruff check and ruff format --check clean.
+- CI verification: 6/6 jobs green on run 43378025682 (commit 7701299).
+
+### Milestone 7 — benchmarks and figures
+
+- `python benchmarks/run_all.py` runs every benchmark and saves each full output, starting with
+  the environment block, to `benchmarks/results/<name>.txt`. Figures: `benchmarks/figures/`
+  (thread_scaling, qmc_convergence, heston_bias).
+- Numbers below match the saved files: run on code commit 635a169 (`+dirty` = only
+  PROGRESS.md uncommitted). Afterwards a lint-only fix (ruff B023, loop-variable binding in a
+  lambda) changed `numpy_comparison.py` without changing what it measures. Apple M3 (4
+  performance + 4 efficiency cores), macOS 15.5, AppleClang 17.0.0.17000013, Release
+  `-O3 -DNDEBUG`, Python 3.13.18, NumPy 2.5.4. Timings are medians of 5 repeats.
+- Variance reduction, QMC and Heston outputs are identical to the milestone 3, 5 and 6 runs
+  (same seeds, same code). Thread scaling, 20M paths: 50.5 Mpaths/s on 1 thread, 3.83× on 4,
+  5.57× on 8, bit-identical at every count (milestone 2 measured 3.70× and 5.63×; an
+  intermediate run gave 3.85× and 5.77×: run-to-run variation of a few percent).
+- C++ vs vectorized NumPy (wall-clock from Python, same estimator and path count, different
+  random generators; all estimates agree within 4 combined SE):
+
+  | product                          | NumPy     | C++, 1 thread       | C++, 8 threads       |
+  |----------------------------------|-----------|---------------------|----------------------|
+  | European call, 10M paths         | 0.117 s   | 0.198 s (0.59×)     | 0.034 s (3.42×)      |
+  | Arithmetic Asian, 64 steps, 1M   | 0.650 s   | 0.643 s (1.01×)     | 0.128 s (5.09×)      |
+
+  - Single-threaded, NumPy is faster than our C++ on the European call (85.7 vs 50.6
+    Mpaths/s) and level on the Asian. The C++ speedup comes from multithreading.
+  - Likely causes, not yet profiled: NumPy draws normals with the ziggurat method, while we
+    use the inverse CDF (AS241: a log, a sqrt and rational polynomials per normal) to stay
+    bit-identical across platforms; NumPy's array `exp` may also be SIMD-vectorized. Profiling
+    the single-thread loop is listed as future work, not claimed as a fix.

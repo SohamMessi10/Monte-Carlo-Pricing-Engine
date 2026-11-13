@@ -1,0 +1,37 @@
+$ python benchmarks/variance_reduction.py
+
+        git_commit: 635a169+dirty
+               cpu: Apple M3
+      logical_cpus: 8
+                os: macOS-15.5-arm64-arm-64bit-Mach-O
+            python: 3.13.18
+          compiler: AppleClang 17.0.0.17000013
+        build_type: Release
+         cxx_flags: -O3 -DNDEBUG
+ performance_cores: 4
+  efficiency_cores: 4
+             paths: 1,000,000 per run, seed 42, all hardware threads
+           repeats: 5 (time = median C++ elapsed_seconds)
+
+| option | method | estimate | std error | VRF | median ms | efficiency gain |
+|---|---|---:|---:|---:|---:|---:|
+| call K=80 (ITM) | plain | 24.57576 | 0.01914 | 1.00 | 3.7 | 1.00 |
+| call K=80 (ITM) | antithetic | 24.58155 | 0.00648 | 8.73 | 2.3 | 13.97 |
+| call K=80 (ITM) | control | 24.58638 | 0.00239 | 64.00 | 3.7 | 63.25 |
+| call K=80 (ITM) | both | 24.58834 | 0.00084 | 513.51 | 2.3 | 816.55 |
+| call K=80 (ITM) | Black–Scholes | 24.58884 | | | | |
+| call K=100 (ATM) | plain | 10.43697 | 0.01470 | 1.00 | 3.8 | 1.00 |
+| call K=100 (ATM) | antithetic | 10.44099 | 0.01038 | 2.00 | 2.3 | 3.39 |
+| call K=100 (ATM) | control | 10.44457 | 0.00561 | 6.87 | 3.9 | 6.80 |
+| call K=100 (ATM) | both | 10.45158 | 0.00274 | 28.79 | 2.4 | 45.97 |
+| call K=100 (ATM) | Black–Scholes | 10.45058 | | | | |
+| call K=130 (OTM) | plain | 1.63216 | 0.00615 | 1.00 | 3.7 | 1.00 |
+| call K=130 (OTM) | antithetic | 1.63239 | 0.00593 | 1.08 | 2.3 | 1.73 |
+| call K=130 (OTM) | control | 1.63435 | 0.00474 | 1.68 | 3.8 | 1.64 |
+| call K=130 (OTM) | both | 1.63840 | 0.00169 | 13.30 | 2.3 | 20.73 |
+| call K=130 (OTM) | Black–Scholes | 1.63959 | | | | |
+| put K=100 (ATM) | plain | 5.57120 | 0.00865 | 1.00 | 3.7 | 1.00 |
+| put K=100 (ATM) | antithetic | 5.56815 | 0.00662 | 1.71 | 2.3 | 2.80 |
+| put K=100 (ATM) | control | 5.56751 | 0.00561 | 2.38 | 3.8 | 2.32 |
+| put K=100 (ATM) | both | 5.57453 | 0.00274 | 9.98 | 2.4 | 15.57 |
+| put K=100 (ATM) | Black–Scholes | 5.57353 | | | | |
