@@ -10,8 +10,8 @@ Status labels:
 | 0  | Scaffold: build system, CI, tooling                    | VERIFIED (local + CI)        |
 | 1  | GBM European call/put + Black–Scholes reference        | VERIFIED (local + CI)        |
 | 2  | Multithreading + deterministic chunked RNG             | VERIFIED (local + CI)        |
-| 3  | Variance reduction (antithetic, control variates)      | VERIFIED (local); CI pending |
-| 4  | Arithmetic Asian (geometric CV) + discrete barrier     | TODO                         |
+| 3  | Variance reduction (antithetic, control variates)      | VERIFIED (local + CI)        |
+| 4  | Arithmetic Asian (geometric CV) + discrete barrier     | VERIFIED (local); CI pending |
 | 5  | Sobol QMC + Brownian bridge + random digital shift     | TODO                         |
 | 6  | Heston (full-truncation Euler) + semi-analytic ref     | TODO                         |
 | 7  | Benchmarks + figures                                   | TODO                         |
@@ -115,3 +115,22 @@ Status labels:
   - Antithetic runs take ~2.2 ms vs ~3.6 ms for plain, so its efficiency gain exceeds its VRF.
     Likely cause (not profiled): it makes half as many RNG + inverse-CDF calls per path. At 1M paths each run is only a few ms,
     so thread start-up is a noticeable share of these timings.
+- CI verification: 6/6 jobs green on commit 3e7cdba.
+
+### Milestone 4 — path-dependent options
+
+- Grid t_i = i T / m, i = 1..m, exact GBM steps in log space (no discretization error).
+- Arithmetic Asian with the geometric Asian as control variate. Kemna–Vorst closed form for the
+  discrete geometric average in C++ (control mean) and in Python (`mcpricer.geometric_asian`).
+- Up-and-out call/put, knocked out if S(t_i) >= H at any monitoring date. Knocked-out paths
+  still draw all m normals, so a seed gives the same paths for every barrier level.
+- Control-variate algebra moved to `CovStats::control_variate()`; the European control-variate
+  result is unchanged (1M paths, seed 42: estimate 10.444572534453995, std error
+  0.005605819566981251, matching the milestone 3 table).
+- Tests: geometric closed form = Black–Scholes at m = 1; C++ and Python closed forms agree to
+  1e-12; geometric MC within 4 SE of the closed form; arithmetic at m = 1 within 4 SE of
+  Black–Scholes; arithmetic call >= geometric call on the same paths; control variate agrees
+  with plain MC and lowers the SE; barrier price monotone in H and within 4 SE of
+  Black–Scholes at H = 1e12; single-date barrier within 4 SE of its closed form
+  C(K) − C(H) − (H − K) e^{−rT} N(d2(H)); bit-identical across threads; input validation.
+- Local verification: pytest 265 passed; ruff check and ruff format --check clean.
